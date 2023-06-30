@@ -12,39 +12,56 @@
 #if RTC_ENABLE_MEDIA
 
 #include "h265nalunit.hpp"
-#include "mediahandlerrootelement.hpp"
 #include "rtppacketizer.hpp"
 
 namespace rtc {
 
-/// RTP packetization of h265 payload
-class RTC_CPP_EXPORT H265RtpPacketizer final : public RtpPacketizer,
-                                               public MediaHandlerRootElement {
-	shared_ptr<H265NalUnits> splitMessage(binary_ptr message);
-	const uint16_t maximumFragmentSize;
-
+// RTP packetization for H265
+class RTC_CPP_EXPORT H265RtpPacketizer final : public RtpPacketizer {
 public:
 	using Separator = NalUnit::Separator;
 
-	/// Default clock rate for H265 in RTP
+	// Default clock rate for H265 in RTP
 	inline static const uint32_t defaultClockRate = 90 * 1000;
 
-	H265RtpPacketizer(NalUnit::Separator separator, shared_ptr<RtpPacketizationConfig> rtpConfig,
+	// Constructs h265 payload packetizer with given RTP configuration.
+	// @note RTP configuration is used in packetization process which may change some configuration
+	// properties such as sequence number.
+	// @param separator NAL unit separator
+	// @param rtpConfig  RTP configuration
+	// @param maximumFragmentSize maximum size of one NALU fragment
+	H265RtpPacketizer(Separator separator, shared_ptr<RtpPacketizationConfig> rtpConfig,
 	                  uint16_t maximumFragmentSize = H265NalUnits::defaultMaximumFragmentSize);
 
-	/// Constructs h265 payload packetizer with given RTP configuration.
-	/// @note RTP configuration is used in packetization process which may change some configuration
-	/// properties such as sequence number.
-	/// @param rtpConfig  RTP configuration
-	/// @param maximumFragmentSize maximum size of one NALU fragment
+	// TODO: deprecate
 	H265RtpPacketizer(shared_ptr<RtpPacketizationConfig> rtpConfig,
 	                  uint16_t maximumFragmentSize = H265NalUnits::defaultMaximumFragmentSize);
 
-	ChainedOutgoingProduct processOutgoingBinaryMessage(ChainedMessagesProduct messages,
-	                                                    message_ptr control) override;
+	void incoming(message_vector &messages, const message_callback &send) override;
+	void outgoing(message_vector &messages, const message_callback &send) override;
 
 private:
+	shared_ptr<H265NalUnits> splitMessage(binary_ptr message);
+
+	const uint16_t maximumFragmentSize;
 	const NalUnit::Separator separator;
+};
+
+// Dummy wrapper for backward compatibility
+class RTC_CPP_EXPORT H265PacketizationHandler final : public MediaHandler {
+public:
+	H265PacketizationHandler(shared_ptr<H265RtpPacketizer> packetizer)
+	    : mPacketizer(std::move(packetizer)) {}
+
+	inline void incoming(message_vector &messages, const message_callback &send) {
+		return mPacketizer->incoming(messages, send);
+	}
+	inline void outgoing(message_vector &messages, const message_callback &send) {
+		return mPacketizer->outgoing(messages, send);
+	}
+
+private:
+	shared_ptr<H265RtpPacketizer> mPacketizer;
 };
 
 } // namespace rtc
