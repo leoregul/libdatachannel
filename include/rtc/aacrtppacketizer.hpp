@@ -11,14 +11,12 @@
 
 #if RTC_ENABLE_MEDIA
 
-#include "mediachainablehandler.hpp"
-#include "mediahandlerrootelement.hpp"
 #include "rtppacketizer.hpp"
 
 namespace rtc {
 
-/// RTP packetizer for aac
-class RTC_CPP_EXPORT AACRtpPacketizer final : public RtpPacketizer, public MediaHandlerRootElement {
+// RTP packetizer for AAC
+class RTC_CPP_EXPORT AACRtpPacketizer final : public RtpPacketizer {
 public:
 	/// default clock rate used in aac RTP communication
 	inline static const uint32_t defaultClockRate = 48 * 1000;
@@ -29,29 +27,27 @@ public:
 	/// @param rtpConfig  RTP configuration
 	AACRtpPacketizer(shared_ptr<RtpPacketizationConfig> rtpConfig);
 
-	/// Creates RTP packet for given payload based on `rtpConfig`.
-	/// @note This function increase sequence number after packetization.
-	/// @param payload RTP payload
-	/// @param setMark This needs to be `false` for all RTP packets with aac payload
-	binary_ptr packetize(binary_ptr payload, bool setMark) override;
-
-	/// Creates RTP packet for given samples (all samples share same RTP timesamp)
-	/// @param messages aac samples
-	/// @param control RTCP
-	/// @returns RTP packets and unchanged `control`
-	ChainedOutgoingProduct processOutgoingBinaryMessage(ChainedMessagesProduct messages,
-	                                                    message_ptr control) override;
+	void incoming(message_vector &messages, const message_callback &send) override;
+	void outgoing(message_vector &messages, const message_callback &send) override;
 };
 
-/// Handler for aac packetization
-class RTC_CPP_EXPORT AACPacketizationHandler final : public MediaChainableHandler {
-
+// Dummy wrapper for backward compatibility
+class RTC_CPP_EXPORT AACPacketizationHandler final : public MediaHandler {
 public:
-	/// Construct handler for aac packetization.
-	/// @param packetizer RTP packetizer for aac
 	AACPacketizationHandler(shared_ptr<AACRtpPacketizer> packetizer)
-	    : MediaChainableHandler(packetizer) {}
+	    : mPacketizer(std::move(packetizer)) {}
+
+	inline void incoming(message_vector &messages, const message_callback &send) {
+		return mPacketizer->incoming(messages, send);
+	}
+	inline void outgoing(message_vector &messages, const message_callback &send) {
+		return mPacketizer->outgoing(messages, send);
+	}
+
+private:
+	shared_ptr<AACRtpPacketizer> mPacketizer;
 };
+
 
 } // namespace rtc
 

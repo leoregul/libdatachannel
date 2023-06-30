@@ -22,19 +22,20 @@ namespace rtc {
 // An RtcpSession can be plugged into a Track to handle the whole RTCP session
 class RTC_CPP_EXPORT RtcpReceivingSession : public MediaHandler {
 public:
-	message_ptr incoming(message_ptr ptr) override;
-	message_ptr outgoing(message_ptr ptr) override;
-	bool send(message_ptr ptr);
+	RtcpReceivingSession() = default;
+	virtual ~RtcpReceivingSession() = default;
 
 	void requestBitrate(unsigned int newBitrate);
+
+	void incoming(message_vector &messages, const message_callback &send) override;
+	void outgoing(message_vector &messages, const message_callback &send) override;
 
 	bool requestKeyframe() override;
 
 protected:
-	void pushREMB(unsigned int bitrate);
-	void pushRR(unsigned int lastSR_delay);
-
-	void pushPLI();
+	void pushREMB(const message_callback &send, unsigned int bitrate);
+	void pushRR(const message_callback &send,unsigned int lastSrDelay);
+	void pushPLI(const message_callback &send);
 
 	unsigned int mRequestedBitrate = 0;
 	SSRC mSsrc = 0;
