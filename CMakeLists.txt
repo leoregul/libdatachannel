@@ -409,8 +409,8 @@ else()
 		find_package(LibJuice REQUIRED)
 		target_compile_definitions(datachannel PRIVATE RTC_SYSTEM_JUICE=1)
 		target_compile_definitions(datachannel-static PRIVATE RTC_SYSTEM_JUICE=1)
-		target_link_libraries(datachannel PRIVATE LibJuice::LibJuice)
-		target_link_libraries(datachannel-static PRIVATE LibJuice::LibJuice)
+		target_link_libraries(datachannel PRIVATE LibJuice::LibJuiceStatic)
+		target_link_libraries(datachannel-static PRIVATE LibJuice::LibJuiceStatic)
 	else()
 		add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
 		target_compile_definitions(datachannel PRIVATE RTC_SYSTEM_JUICE=0)
@@ -446,7 +446,7 @@ if(WARNINGS_AS_ERRORS)
 	endif()
 endif()
 
-install(TARGETS datachannel EXPORT LibDataChannelTargets
+install(TARGETS datachannel datachannel-static EXPORT LibDataChannelTargets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
